@@ -11,16 +11,17 @@ MainWindow::MainWindow(QWidget *parent)
     setFocusPolicy(Qt::StrongFocus); // Agregar esta línea
 
     initializeRedBlocks();
+    initializeStaticObjects();
 
     // Temporizador para actualizar las posiciones de las balas
     bulletTimer = new QTimer(this);
     connect(bulletTimer, &QTimer::timeout, this, &MainWindow::updatePositions);
-    bulletTimer->start(10); // Intervalo para las balas
+    bulletTimer->start(13); // Intervalo para las balas
 
     // Temporizador para actualizar la posición del jugador
     playerTimer = new QTimer(this);
     connect(playerTimer, &QTimer::timeout, this, &MainWindow::updatePlayerPosition);
-    playerTimer->start(5); // Intervalo para el jugador
+    playerTimer->start(7); // Intervalo para el jugador
 
     // Crear botón de salto
     jumpButton = new QPushButton("Jump", this);
@@ -50,9 +51,32 @@ void MainWindow::initializeRedBlocks()
     }
 }
 
+void MainWindow::initializeStaticObjects()
+{
+    staticObjects.clear();
+    // Añadir algunos objetos estáticos al azar
+    for (int i = 0; i < 5; ++i)
+    {
+        StaticObject object;
+        object.x = rand() % (width() - 50);
+        object.y = height() - blockSize - 30; // Alineado verticalmente con el jugador
+        object.width = 50;
+        object.height = 100;
+        staticObjects.append(object);
+    }
+}
+
 void MainWindow::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
+
+    // Dibujar los objetos estáticos (edificios) en gris
+    painter.setBrush(Qt::gray);
+    painter.setPen(Qt::gray);
+    for (const auto &object : staticObjects)
+    {
+        painter.drawRect(object.x, object.y - object.height, object.width, object.height); // Ajustar la altura
+    }
 
     // Establecer el color azul
     painter.setBrush(Qt::blue);

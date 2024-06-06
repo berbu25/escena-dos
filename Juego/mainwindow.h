@@ -41,12 +41,21 @@ private:
         bool isParabolic;
     };
 
+    struct StaticObject {
+        int x;
+        int y;
+        int width;
+        int height;
+    };
+
     void initializeRedBlocks();
+    void initializeStaticObjects();
     bool checkCollision(const Block &block);
     void resetBlueBlock();
     void endGame();
 
     QVector<Block> redBlocks;
+    QVector<StaticObject> staticObjects;
     QTimer *bulletTimer;
     QTimer *playerTimer;
     int x;
