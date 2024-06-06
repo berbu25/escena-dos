@@ -1,9 +1,14 @@
 #include "mainwindow.h"
+#include <QKeyEvent>
+#include <QTimer>
+#include <QRandomGenerator>
+#include <QPushButton>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), x(0), attemptsLeft(3), moveRight(false), moveLeft(false)
+    : QMainWindow(parent), x(0), attemptsLeft(3), moveRight(false), moveLeft(false), isJumping(false), jumpHeight(0), jumpSpeed(20), jumpMaxHeight(200)
 {
     setFixedSize(900, 600);
+    setFocusPolicy(Qt::StrongFocus); // Agregar esta línea
 
     initializeRedBlocks();
 
@@ -16,10 +21,18 @@ MainWindow::MainWindow(QWidget *parent)
     playerTimer = new QTimer(this);
     connect(playerTimer, &QTimer::timeout, this, &MainWindow::updatePlayerPosition);
     playerTimer->start(5); // Intervalo para el jugador
+
+    // Crear botón de salto
+    jumpButton = new QPushButton("Jump", this);
+    jumpButton->setGeometry(10, 10, 75, 23);
+    connect(jumpButton, &QPushButton::pressed, this, &MainWindow::onJumpButtonPressed);
+    connect(jumpButton, &QPushButton::released, this, &MainWindow::onJumpButtonReleased);
 }
 
 MainWindow::~MainWindow()
 {
+    delete bulletTimer;
+    delete playerTimer;
 }
 
 void MainWindow::initializeRedBlocks()
@@ -46,7 +59,7 @@ void MainWindow::paintEvent(QPaintEvent *event)
     painter.setPen(Qt::blue);
 
     // Dibujar el bloque azul en la parte inferior de la pantalla
-    painter.drawRect(x + 30, height() - blockSize - 30, blockSize, blockSize);
+    painter.drawRect(x + 30, height() - blockSize - 30 - jumpHeight, blockSize, blockSize);
 
     // Dibujar los bloques rojos
     painter.setBrush(Qt::red);
@@ -67,6 +80,11 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     {
         moveLeft = true;
     }
+    else if (event->key() == Qt::Key_Up && !isJumping)
+    {
+        isJumping = true;
+        jumpHeight = 0;
+    }
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *event)
@@ -78,6 +96,10 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     else if (event->key() == Qt::Key_Left)
     {
         moveLeft = false;
+    }
+    else if (event->key() == Qt::Key_Up && isJumping)
+    {
+        isJumping = false;
     }
 }
 
@@ -98,6 +120,19 @@ void MainWindow::updatePlayerPosition()
             x -= stepSize;
             update(); // Redibujar la ventana
         }
+    }
+
+    // Mover jugador hacia arriba si está saltando
+    if (isJumping && jumpHeight < jumpMaxHeight)
+    {
+        jumpHeight += jumpSpeed;
+        update(); // Redibujar la ventana
+    }
+    else if (!isJumping && jumpHeight > 0)
+    {
+        // Caída del jugador
+        jumpHeight -= jumpSpeed;
+        update(); // Redibujar la ventana
     }
 }
 
@@ -145,7 +180,7 @@ void MainWindow::updatePositions()
 
 bool MainWindow::checkCollision(const Block &block)
 {
-    QRect blueBlockRect(x + 30, height() - blockSize - 30, blockSize, blockSize);
+    QRect blueBlockRect(x + 30, height() - blockSize - 30 - jumpHeight, blockSize, blockSize);
     QRect redBlockRect(block.x, block.y, redBlockSize, redBlockSize);
     return blueBlockRect.intersects(redBlockRect);
 }
@@ -162,4 +197,15 @@ void MainWindow::endGame()
     playerTimer->stop();
     QMessageBox::information(this, "Fin del juego", "Has perdido. Fin del juego.");
     close(); // Cerrar la ventana
+}
+
+void MainWindow::onJumpButtonPressed()
+{
+    isJumping = true;
+    jumpHeight = 0;
+}
+
+void MainWindow::onJumpButtonReleased()
+{
+    isJumping = false;
 }

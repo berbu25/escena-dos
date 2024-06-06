@@ -7,14 +7,18 @@
 #include <QPainter>
 #include <QMessageBox>
 #include <QVector>
-#include <QRect>
+#include <QPushButton>
+
+namespace Ui {
+class MainWindow;
+}
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 protected:
@@ -25,6 +29,8 @@ protected:
 private slots:
     void updatePositions();
     void updatePlayerPosition();
+    void onJumpButtonPressed();
+    void onJumpButtonReleased();
 
 private:
     struct Block {
@@ -47,9 +53,15 @@ private:
     int attemptsLeft;
     bool moveRight;
     bool moveLeft;
+    bool isJumping;
+    int jumpHeight;
+    int jumpSpeed;
+    int jumpMaxHeight;
     static const int blockSize = 30;
     static const int redBlockSize = 20;
     static const int stepSize = 10;
+    int originalPlayerY;
+    QPushButton *jumpButton;
 };
 
 #endif // MAINWINDOW_H
