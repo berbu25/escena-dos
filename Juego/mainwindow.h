@@ -9,16 +9,12 @@
 #include <QVector>
 #include <QPushButton>
 
-namespace Ui {
-class MainWindow;
-}
-
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(int numBlocks, QWidget *parent = nullptr);
     ~MainWindow();
 
 protected:
@@ -48,7 +44,7 @@ private:
         int height;
     };
 
-    void initializeRedBlocks();
+    void initializeRedBlocks(int numBlocks);
     void initializeStaticObjects();
     bool checkCollision(const Block &block);
     void resetBlueBlock();

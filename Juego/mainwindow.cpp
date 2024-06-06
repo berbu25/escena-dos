@@ -4,13 +4,13 @@
 #include <QRandomGenerator>
 #include <QPushButton>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(int numBlocks, QWidget *parent)
     : QMainWindow(parent), x(0), attemptsLeft(3), moveRight(false), moveLeft(false), isJumping(false), jumpHeight(0), jumpSpeed(20), jumpMaxHeight(200)
 {
     setFixedSize(900, 600);
     setFocusPolicy(Qt::StrongFocus); // Agregar esta línea
 
-    initializeRedBlocks();
+    initializeRedBlocks(numBlocks);
     initializeStaticObjects();
 
     // Temporizador para actualizar las posiciones de las balas
@@ -36,10 +36,10 @@ MainWindow::~MainWindow()
     delete playerTimer;
 }
 
-void MainWindow::initializeRedBlocks()
+void MainWindow::initializeRedBlocks(int numBlocks)
 {
     redBlocks.clear();
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < numBlocks; ++i)
     {
         Block block;
         block.x = rand() % width();
