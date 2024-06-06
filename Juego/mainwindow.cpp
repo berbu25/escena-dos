@@ -3,6 +3,10 @@
 #include <QTimer>
 #include <QRandomGenerator>
 #include <QPushButton>
+#include <QMessageBox>
+#include <QPainter>
+#include <QFile>
+#include <QTextStream>
 
 MainWindow::MainWindow(int numBlocks, QWidget *parent)
     : QMainWindow(parent), x(0), attemptsLeft(3), moveRight(false), moveLeft(false), isJumping(false), jumpHeight(0), jumpSpeed(20), jumpMaxHeight(200)
@@ -16,18 +20,23 @@ MainWindow::MainWindow(int numBlocks, QWidget *parent)
     // Temporizador para actualizar las posiciones de las balas
     bulletTimer = new QTimer(this);
     connect(bulletTimer, &QTimer::timeout, this, &MainWindow::updatePositions);
-    bulletTimer->start(13); // Intervalo para las balas
+    bulletTimer->start(20); // Intervalo para las balas
 
     // Temporizador para actualizar la posición del jugador
     playerTimer = new QTimer(this);
     connect(playerTimer, &QTimer::timeout, this, &MainWindow::updatePlayerPosition);
-    playerTimer->start(7); // Intervalo para el jugador
+    playerTimer->start(10); // Intervalo para el jugador
 
     // Crear botón de salto
     jumpButton = new QPushButton("Jump", this);
     jumpButton->setGeometry(10, 10, 75, 23);
     connect(jumpButton, &QPushButton::pressed, this, &MainWindow::onJumpButtonPressed);
-    connect(jumpButton, &QPushButton::released, this, &MainWindow::onJumpButtonReleased);
+
+    // Limpiar el archivo al inicio
+    QFile file("simulation_results.txt");
+    file.open(QIODevice::WriteOnly | QIODevice::Text);
+    file.close();
+
 }
 
 MainWindow::~MainWindow()
@@ -107,7 +116,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     else if (event->key() == Qt::Key_Up && !isJumping)
     {
         isJumping = true;
-        jumpHeight = 0;
+        jumpSpeed = 20; // Inicializar la velocidad del salto al empezar
     }
 }
 
@@ -120,10 +129,6 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     else if (event->key() == Qt::Key_Left)
     {
         moveLeft = false;
-    }
-    else if (event->key() == Qt::Key_Up && isJumping)
-    {
-        isJumping = false;
     }
 }
 
@@ -147,17 +152,34 @@ void MainWindow::updatePlayerPosition()
     }
 
     // Mover jugador hacia arriba si está saltando
-    if (isJumping && jumpHeight < jumpMaxHeight)
+    if (isJumping)
     {
         jumpHeight += jumpSpeed;
+        if (jumpHeight >= jumpMaxHeight)
+        {
+            jumpSpeed = -abs(jumpSpeed); // Invertir dirección para caer
+        }
         update(); // Redibujar la ventana
     }
-    else if (!isJumping && jumpHeight > 0)
+    else
     {
         // Caída del jugador
-        jumpHeight -= jumpSpeed;
+        jumpHeight -= gravity; // Simular caída
+        if (jumpHeight <= 0)
+        {
+            jumpHeight = 0;
+            handleElasticCollision(); // Manejar colisión elástica
+        }
         update(); // Redibujar la ventana
     }
+    // Guardar la posición actual del jugador
+    QString playerData = QString("Player - X: %1, Jump Height: %2, Jump Speed: %3, Is Jumping: %4")
+                             .arg(x)
+                             .arg(jumpHeight)
+                             .arg(jumpSpeed)
+                             .arg(isJumping);
+    writeToFile(playerData);
+
 }
 
 void MainWindow::updatePositions()
@@ -173,6 +195,14 @@ void MainWindow::updatePositions()
         {
             block.x += block.dx; // Movimiento lineal
         }
+
+        QString blockData = QString("Red Block - X: %1, Y: %2, DX: %3, DY: %4, Parabolic: %5")
+                                .arg(block.x)
+                                .arg(block.y)
+                                .arg(block.dx)
+                                .arg(block.dy)
+                                .arg(block.isParabolic);
+        writeToFile(blockData); // Mover writeToFile dentro del bucle
 
         // Reiniciar la posición del bloque si sale de la pantalla
         if (block.y > height() || block.x < 0 || block.x > width())
@@ -209,9 +239,24 @@ bool MainWindow::checkCollision(const Block &block)
     return blueBlockRect.intersects(redBlockRect);
 }
 
+void MainWindow::handleElasticCollision()
+{
+    jumpSpeed = -jumpSpeed * restitution; // Cambiar la dirección del movimiento vertical y aplicar el coeficiente de restitución
+
+    // Verificar si la velocidad es lo suficientemente pequeña para detener el salto
+    if (abs(jumpSpeed) < 1)
+    {
+        jumpSpeed = 0;
+        isJumping = false;
+        jumpHeight = 0; // Asegurarse de que el jugador esté en el suelo
+    }
+}
+
 void MainWindow::resetBlueBlock()
 {
     x = 0; // Reiniciar la posición del bloque azul
+    jumpHeight = 0; // Reiniciar la altura de salto
+    jumpSpeed = 20; // Reiniciar la velocidad de salto
     update(); // Redibujar la ventana
 }
 
@@ -225,11 +270,21 @@ void MainWindow::endGame()
 
 void MainWindow::onJumpButtonPressed()
 {
-    isJumping = true;
-    jumpHeight = 0;
+    if (!isJumping) // Solo iniciar el salto si no se está saltando
+    {
+        isJumping = true;
+        jumpSpeed = 20; // Inicializar la velocidad del salto al empezar
+    }
 }
 
-void MainWindow::onJumpButtonReleased()
+void MainWindow::writeToFile(const QString &data)
 {
-    isJumping = false;
+    QFile file("simulation_results.txt");
+    if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+    {
+        QTextStream out(&file);
+        out << data << "\n";
+        file.close();
+    }
 }
+
